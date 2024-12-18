@@ -103,7 +103,7 @@ async function updateMovie() {
         year: year,
       },
     });
-    console.log(`Movie ${title} added successfully!`);
+    console.log(`Movie ${title} updated successfully!`);
   } catch (error) {
     console.error("An error occurred:", error);
     console.log("Please try again.");
@@ -134,21 +134,15 @@ async function listMovies() {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findmany
   // 2. Include the genre details in the fetched movies.
   // 3. Print the list of movies with their genres (take 10).
-  const movies = await prisma.movie.findMany();
-  // const movies = await prisma.movie.findMany({
-  //   relationLoadStrategy: 'join', // or 'query'
-  //   include: {
-  //       genres: true
-  //   },
-  // });
-  // const genres = await prisma.genre.findMany({
-  //   relationLoadStrategy: 'query',
-  //   include: {
-  //     movies: true,
-  //   }
-  // });
-  //const genres = await prisma.genre.findMany();
-  movies.map((movie) => console.log(`ID: ${movie.id} - ${movie.title} - ${movie.year} - ${movie}`));
+  //const movies = await prisma.movie.findMany();
+  const movies = await prisma.movie.findMany({
+    relationLoadStrategy: 'join', // or 'query'
+    include: {
+        genres: true
+    },
+  });
+  
+  movies.map((movie) => console.log(`ID: ${movie.id} - ${movie.title} - ${movie.year} - ${movie.genres.map((genre) => genre.name)}`));
 }
 
 async function listMovieById() {
@@ -158,6 +152,15 @@ async function listMovieById() {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findunique
   // 3. Include the genre details in the fetched movie.
   // 4. Print the movie details with its genre.
+  const id = parseInt(input("What is the id of the movie?: "));
+  const theMovie = await prisma.movie.findFirstOrThrow({
+    relationLoadStrategy: 'join', // or 'query'
+    include: {
+        genres: true
+    },
+    where: { id },
+  });
+  console.log(`ID: ${theMovie.id} - ${theMovie.title} - ${theMovie.year} - ${theMovie.genres.map((genre) => genre.name)}`);
 }
 
 async function listMovieByGenre() {
@@ -167,6 +170,28 @@ async function listMovieByGenre() {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findmany
   // 3. Include the genre details in the fetched movies.
   // 4. Print the list of movies with the provided genre (take 10).
+  const name = input("What is the genre?: ");
+  const theGenre = await prisma.genre.findFirstOrThrow({
+    relationLoadStrategy: 'join', // or 'query'
+    include: {
+        movies: true
+    },
+    where: { name },
+  });
+
+  theGenre.movies.map((movie) => console.log(`${movie.title} - ${movie.year} - ${name}`));
+  // console.log(`ID: ${theGenre.id} - ${theGenre.name} - ${theGenre.movies.map((movie) => movie.title)}`);
+
+  //const id = parseInt(input("What is the id of the movie?: "));
+  // const name = input("What is the genre?: ");
+  // const theMovie = await prisma.movie.findFirstOrThrow({
+  //   relationLoadStrategy: 'join', // or 'query'
+  //   include: {
+  //       genres: true
+  //   },
+  //   where: { movies.genre = name },
+  // });
+  // console.log(`ID: ${theMovie.id} - ${theMovie.title} - ${theMovie.year} - ${theMovie.genres.map((genre) => genre.name)}`);
 }
 
 async function addGenre() {
@@ -175,6 +200,19 @@ async function addGenre() {
   // 2. Use Prisma client to create a new genre with the provided name.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#create
   // 3. Print the created genre details.
+  const genreName = input("Enter the movie genre: ");
+  const genreExists = await prisma.genre.findFirst({
+    where: { name: genreName}
+  })
+  if(!genreExists){
+    await prisma.genre.create({
+      data: {
+        name: genreName,
+      },
+    });
+  } else {
+    console.log("Genre already exists");
+  }
 }
 
 async function main() {
