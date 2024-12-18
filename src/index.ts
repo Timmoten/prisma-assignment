@@ -12,6 +12,7 @@ import PromptSync from "prompt-sync";
 // Reference: https://www.prisma.io/docs/concepts/components/prisma-client
 
 import { prisma } from "./lib/prisma";
+import { title } from "process";
 
 // Example usage of prisma client
 // try {
@@ -42,6 +43,46 @@ async function addMovie() {
   // 1.b Prompt the user for genre.
   // 2.b If the genre does not exist, create a new genre.
   // 3.b Ask the user if they want to want to add another genre to the movie.
+  const title = input("What is the name of the movie?: ");
+  const year = parseInt(input("What year was it released?: "));
+  
+  const createdMovie = await prisma.movie.create({
+    data: {
+      title: title,
+      year,
+    },
+  });
+  console.log(`Movie ${title} added successfully!`);
+  
+  while(true)
+  {
+    const genreName = input("Enter the movie genre: ");
+    const genreExists = await prisma.genre.findFirst({
+      where: { name: genreName}
+    })
+    if(!genreExists){
+      await prisma.genre.create({
+        data: {
+          name: genreName,
+          movies: {
+            connect: { id: createdMovie.id },
+          },
+        },
+      });
+    } else {
+    await prisma.genre.update({
+      where: { id: genreExists?.id },
+      data: {
+        movies: {
+          connect: { id: createdMovie.id},
+        }
+      }
+    })}
+    const userInput = input("Do you want to add another genre?: ");
+    if (userInput == "n") {
+      break;
+    }
+  }
 }
 
 async function updateMovie() {
@@ -51,6 +92,22 @@ async function updateMovie() {
   // 3. Use Prisma client to update the movie with the provided ID with the new details.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#update
   // 4. Print the updated movie details.
+  const id = parseInt(input("What is the id of the movie?: "));
+  const title = input("What is the name of the new movie?: ");
+  const year = parseInt(input("What year was it released?: "));
+  try {
+    await prisma.movie.update({
+      where: { id },
+      data: {
+        title: title,
+        year: year,
+      },
+    });
+    console.log(`Movie ${title} added successfully!`);
+  } catch (error) {
+    console.error("An error occurred:", error);
+    console.log("Please try again.");
+  }
 }
 
 async function deleteMovie() {
@@ -59,6 +116,16 @@ async function deleteMovie() {
   // 2. Use Prisma client to delete the movie with the provided ID.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#delete
   // 3. Print a message confirming the movie deletion.
+  const id = parseInt(input("What is the id of the movie?: "));
+  try {
+    await prisma.movie.delete({
+      where: { id },
+    });
+    console.log(`Movie with id: ${id} was deleted successfully!`);
+  } catch (error) {
+    console.error("An error occurred:", error);
+    console.log("Please try again.");
+  }
 }
 
 async function listMovies() {
@@ -67,6 +134,21 @@ async function listMovies() {
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#findmany
   // 2. Include the genre details in the fetched movies.
   // 3. Print the list of movies with their genres (take 10).
+  const movies = await prisma.movie.findMany();
+  // const movies = await prisma.movie.findMany({
+  //   relationLoadStrategy: 'join', // or 'query'
+  //   include: {
+  //       genres: true
+  //   },
+  // });
+  // const genres = await prisma.genre.findMany({
+  //   relationLoadStrategy: 'query',
+  //   include: {
+  //     movies: true,
+  //   }
+  // });
+  //const genres = await prisma.genre.findMany();
+  movies.map((movie) => console.log(`ID: ${movie.id} - ${movie.title} - ${movie.year} - ${movie}`));
 }
 
 async function listMovieById() {
