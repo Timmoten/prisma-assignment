@@ -12,7 +12,7 @@ import PromptSync from "prompt-sync";
 // Reference: https://www.prisma.io/docs/concepts/components/prisma-client
 
 import { prisma } from "./lib/prisma";
-import { title } from "process";
+import { disconnect, title } from "process";
 
 // Example usage of prisma client
 // try {
@@ -92,22 +92,80 @@ async function updateMovie() {
   // 3. Use Prisma client to update the movie with the provided ID with the new details.
   //    Reference: https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#update
   // 4. Print the updated movie details.
+  
   const id = parseInt(input("What is the id of the movie?: "));
-  const title = input("What is the name of the new movie?: ");
-  const year = parseInt(input("What year was it released?: "));
-  try {
+
+  let q1 = input("Do you want to change the name? y/n");
+  if(q1=="y")
+  {
+    const title = input("What is the name of the new movie?: ");
     await prisma.movie.update({
       where: { id },
       data: {
         title: title,
+      },
+    });
+  }
+  let q2 = input("Do you want to change the year? y/n");
+  if(q2=="y")
+  {
+    const year = parseInt(input("What year was it released?: "));
+    await prisma.movie.update({
+      where: { id },
+      data: {
         year: year,
       },
     });
-    console.log(`Movie ${title} updated successfully!`);
-  } catch (error) {
-    console.error("An error occurred:", error);
-    console.log("Please try again.");
   }
+  let q3 = input("Do you want to change the genre? y/n");
+  if(q3=="y")
+  {
+    await prisma.movie.update({
+      where: { id },
+      data: {
+        genres: { set: [] },
+      },
+    });
+    while (true) {
+      const genreName = input("Enter the movie genre: ");
+      const genreExists = await prisma.genre.findFirst({
+        where: { name: genreName },
+      });
+      if (!genreExists) {
+        await prisma.genre.create({
+          data: {
+            name: genreName,
+            movies: {
+              connect: { id },
+            },
+          },
+        });
+      } else {
+        await prisma.genre.update({
+          where: { id: genreExists?.id },
+          data: {
+            movies: {
+              connect: { id },
+            },
+          },
+        });
+      }
+      const userInput = input("Do you want to add another genre?: ");
+      if (userInput == "n") {
+        break;
+      }
+    }
+  }
+
+  // await prisma.movie.update({
+  //   where: { id },
+  //   data: {
+  //     title: title,
+  //     year: year,
+  //     genres: { set: [] },
+  //   },
+  // });
+  console.log(`Movie ${title} updated successfully!`);
 }
 
 async function deleteMovie() {
